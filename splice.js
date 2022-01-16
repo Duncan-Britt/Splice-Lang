@@ -8,6 +8,9 @@
 
 // Splice.compile :: String="#template"
 const Splice = (function() {
+  // SPLICE ENGINE - PARSER
+  // ======================
+
   // parse :: String -> Array{Object}
   function parse(template) {
     const ast = [];
@@ -39,8 +42,7 @@ const Splice = (function() {
         [ token, expr ] = parseBinding(template);
         ast.push(expr);
       }
-    } else if (match = template.match(/^((.|\s)+?)(?=<<)/)) {
-      token = match[1];
+    } else if (token = textChunk(template)) {
       ast.push({type: 'text', value: token});
     } else {
       token = template;
@@ -48,6 +50,11 @@ const Splice = (function() {
     }
 
     return template.slice(token.length);
+  }
+
+  function textChunk(template) {
+    const match = template.match(/^[\S\s]+?(?=<<)/);
+    return match ? match[0] : false;
   }
 
   // parseFunction :: String -> Array{String, Object}
@@ -58,8 +65,8 @@ const Splice = (function() {
     tokens += token;
     template = template.slice(token.length);
 
-    [ token ] = template.match(/(\s+'?\w+)+\s*?>>/);
-    let args = token.match(/'?\w+/g);
+    [ token ] = template.match(/(\s+'?[\w.$]+)+\s*?>>/);
+    let args = token.match(/'?[\w.$]+/g);
     tokens += token;
     template = template.slice(token.length);
 
@@ -71,7 +78,10 @@ const Splice = (function() {
         return {type: 'text', value: str};
       }
 
-      return {type: 'binding', name: str};
+      let arr = str.split('.');
+      const name = arr[0];
+      const chain = arr.slice(1);
+      return {type: 'binding', name, chain};
     });
 
     const expr = {
@@ -111,9 +121,15 @@ const Splice = (function() {
 
   // parseBinding :: String -> Array{String, Object}
   function parseBinding(template) {
-    let [ token, name ] = template.match(/<<\s*(\w+|\$)\s*>>/);
-    return [token, {type: 'binding', name: name }];
+    let [ token, str ] = template.match(/<<\s*([\w\.\$]+)\s*>>/);
+    let arr = str.split('.');
+    const name = arr[0];
+    const chain = arr.slice(1);
+    return [token, {type: 'binding', name, chain }];
   }
+
+  // SPLICE ENGINE - EVALUATOR
+  // =========================
 
   // evaluateAll :: Array, Object -> String
   function evaluateAll(ast, scope) {
@@ -126,13 +142,16 @@ const Splice = (function() {
       case "op":
         return templateFns[expr.name](scope, ...expr.args, expr.body);
       case "binding":
-        return scope[expr.name];
+        return expr.chain.reduce((data, prop) => data[prop], scope[expr.name]);
       case 'text':
         return expr.value;
       default:
         throw "Invalid Node Type in AST";
     }
   }
+
+  // IN-TEMPLATE HELPER FUNCTIONS
+  // ============================
 
   // Namespace for partial templates
   const partials = Object.create(null);
@@ -180,21 +199,41 @@ const Splice = (function() {
     return '';
   };
 
-// partial :: Object, Array{Object} -> String
+  // partial :: Object, Array{Object} -> String
   templateFns.partial = (scope, expr) => {
     return evaluateAll(partials[expr.name], scope);
   }
 
+  // INTERNAL UTILITY FUNCTIONS
+  // ==========================
+
+  // replaceNodeWithHtml :: !DOM Node, String
+  function replaceNodeWithHTML(node, html) {
+    const tempContainer = document.createElement('div');
+    tempContainer.innerHTML = html;
+    const newNodes = Array.from(tempContainer.childNodes);
+    const parent = node.parentNode;
+    let lastNode = newNodes[newNodes.length - 1];
+    parent.replaceChild(lastNode, node);
+    for (let i = newNodes.length - 2; i >= 0; --i) {
+      parent.insertBefore(newNodes[i], lastNode);
+      lastNode = newNodes[i];
+    }
+  }
+
+  // PUBLIC INTERFACE
+  // ================
   return {
-// Splice.compile :: String="#template"
+    // Splice.compile :: Object, String="#template"
     compile(scope, selector="#template") {
       const templateElement = document.querySelector(selector);
       const template = templateElement.innerHTML;
-      const html = evaluateAll(parse(template), scope);
-      templateElement.previousElementSibling.insertAdjacentHTML('afterend', html);
+      const ast = parse(template);
+      const html = evaluateAll(ast, scope);
+      replaceNodeWithHTML(templateElement, html);
     },
 
-// Splice.registerPartial :: String, String
+    // Splice.registerPartial :: String, String
     registerPartial(id) {
       const templateElement = document.getElementById(id);
       const template = templateElement.innerHTML;
@@ -204,10 +243,17 @@ const Splice = (function() {
 }());
 
 const testScope = {
-  todoItems: ["Get Groceries", "Run Errands", "Go to Sleep"],
-  isHungry: true,
-  snacks: ['Crépe', 'Sandwich', 'Latté'],
+  outest: [
+    [
+      [
+        {title: 'Introduction', id: 'introduction'},
+        {title: 'Simple Expressions', id: 'simple_expressions'},
+        {title: 'Installation', id: 'installation'},
+        {title: 'Partials', id: 'partials'},
+      ],
+    ],
+  ],
 };
 
-Splice.registerPartial("article");
+// Splice.registerPartial("article");
 Splice.compile(testScope);
