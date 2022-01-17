@@ -224,13 +224,19 @@ const Splice = (function() {
   // PUBLIC INTERFACE
   // ================
   return {
-    // Splice.compile :: Object, String="#template"
-    compile(scope, selector="#template") {
+    // Splice.render :: Object, String="#template"
+    render(scope, selector="#template") {
       const templateElement = document.querySelector(selector);
       const template = templateElement.innerHTML;
       const ast = parse(template);
       const html = evaluateAll(ast, scope);
       replaceNodeWithHTML(templateElement, html);
+    },
+
+    // Splice.compile :: String -> [Object] -> String
+    compile(template) {
+      const ast = parse(template);
+      return scope => evaluateAll(ast, scope);
     },
 
     // Splice.registerPartial :: String, String
@@ -254,6 +260,3 @@ const testScope = {
     ],
   ],
 };
-
-// Splice.registerPartial("article");
-Splice.compile(testScope);
