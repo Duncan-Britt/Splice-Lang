@@ -23,7 +23,7 @@ const Splice = (function() {
     // - text
     //   - type, value
     // - binding
-    //   - type, name
+    //   - type, name, chain
     // - arg
     //   - type, name
     // - op
@@ -161,7 +161,8 @@ const Splice = (function() {
 
   // if :: Object, Object, Array{Object} -> String
   templateFns.if = (scope, expr, body) => {
-    return evaluate(expr, scope) ? evaluateAll(body, scope) : '';
+    const innerScope = Object.assign({}, scope);
+    return evaluate(expr, innerScope) ? evaluateAll(body, innerScope) : '';
   };
 
   // each :: Object, Object, Array{Object} -> String
@@ -188,7 +189,8 @@ const Splice = (function() {
   templateFns.def = (scope, alias, expr) => {
     switch (expr.type) {
       case 'binding':
-        scope[alias.value.slice(1)] = scope[expr.name];
+        scope[alias.value.slice(1)] = (
+        expr.chain.reduce((data, prop) => data[prop], scope[expr.name]));
         break;
       case 'text':
         scope[alias.value.slice(1)] = expr.value.slice(1);
