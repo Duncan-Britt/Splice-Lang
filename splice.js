@@ -35,7 +35,8 @@ const Splice = (function() {
   // parseToken :: String, !Array{Object} -> String
   function parseToken(template, ast) {
     let token, match, expr;
-    if (match = template.match(/^::/)) {
+    if (match = template.match(/^\(:/)) {
+
       if (template[2] == '~') {
         [ token, expr ] = parseFunction(template);
         ast.push(expr);
@@ -43,6 +44,7 @@ const Splice = (function() {
         [ token, expr ] = parseBinding(template);
         ast.push(expr);
       }
+
     } else {
       token = textChunk(template)
       ast.push({type: 'text', value: token});
@@ -52,10 +54,10 @@ const Splice = (function() {
   }
 
   function textChunk(template) {
-    const match = template.match(/^[\S\s]+?::/);
+    const match = template.match(/^[\S\s]+?(?<!\\)\(:/);
     if (!match) return template;
 
-    if (match[0].match(/(?<!\\)::/)) {
+    if (match[0].match(/(?<!\\)\(:/)) {
       return match[0].slice(0, -2);
     } else {
       return match[0] + textChunk(template.slice(match[0].length));
@@ -66,7 +68,7 @@ const Splice = (function() {
   function parseFunction(template) {
     let tokens = '';
 
-    let [ token, op ] = template.match(/^::~\s*(\w+)/);
+    let [ token, op ] = template.match(/^\(:~\s*(\w+)/);
     tokens += token;
     template = template.slice(token.length);
 
@@ -105,18 +107,17 @@ const Splice = (function() {
     let resultToken = '';
     let body = '';
     let count = 1;
-
     while (count != 0) {
       let token;
       try {
-        [ token ] = template.match(/[\S\s]*?(?<!\\):(?<!\\):/);
+        [ token ] = template.match(/[\S\s]*?(?<!\\)((?<!\\)\((?<!\\):|(?<!\\):(?<!\\)\))/);
       } catch (error) {
-        throw "SPLICE SYNTAX ERROR: Expecting '}::' to close function body.";
+        throw "SPLICE SYNTAX ERROR: Expecting '}:)' to close function body.";
       }
 
       if (template[token.length] == '~') {
         count++;
-      } else if (token.match(/(?<!\\)\}(?<!\\):(?<!\\):/)) {
+      } else if (token.match(/(?<!\\)\}(?<!\\):(?<!\\)\)/)) {
         count--;
       }
 
@@ -132,7 +133,7 @@ const Splice = (function() {
 
   // parseBinding :: String -> Array{String, Object}
   function parseBinding(template) {
-    let [ token, str ] = template.match(/(?<!\\):(?<!\\):\s*([\w\.\$]+)\s*(?<!\\):(?<!\\):/);
+    let [ token, str ] = template.match(/(?<!\\)\((?<!\\):\s*([\w\.\$]+)\s*(?<!\\):(?<!\\)\)/);
     let arr = str.split('.');
     const name = arr[0];
     const chain = arr.slice(1);
