@@ -11,43 +11,31 @@ const Splice = (function() {
   // SPLICE ENGINE - PARSER
   // ======================
 
+  // Abstract Syntax Tree Node Types:
+  // - text
+  //   - type, value
+  // - binding
+  //   - type, name, chain
+  // - arg
+  //   - type, name
+  // - op
+  //   - type, name, args[], body(AST)
+
   // parse :: String -> Array{Object}
   function parse(template) {
-    template = escape(template);
     const ast = [];
 
     while (template) {
       template = parseToken(template, ast);
     }
 
-    // Abstract Syntax Tree Node Types:
-    // - text
-    //   - type, value
-    // - binding
-    //   - type, name, chain
-    // - arg
-    //   - type, name
-    // - op
-    //   - type, name, args[], body(AST)
     return ast;
-  }
-
-  // escape :: String -> String
-  function escape(text) {
-    let escaped = '';
-    let startIdx = 0;
-    for (match of text.matchAll(/\\[\S\s]/g)) {
-      escaped += text.slice(startIdx, match.index);
-      escaped += match[0].slice(1);
-      startIdx = match.index + 2;
-    }
-    return escaped + text.slice(startIdx);
   }
 
   // parseToken :: String, !Array{Object} -> String
   function parseToken(template, ast) {
     let token, match, expr;
-    if (match = template.match(/^<</)) {
+    if (match = template.match(/^::/)) {
       if (template[2] == '~') {
         [ token, expr ] = parseFunction(template);
         ast.push(expr);
@@ -55,10 +43,8 @@ const Splice = (function() {
         [ token, expr ] = parseBinding(template);
         ast.push(expr);
       }
-    } else if (token = textChunk(template)) {
-      ast.push({type: 'text', value: token});
     } else {
-      token = template;
+      token = textChunk(template)
       ast.push({type: 'text', value: token});
     }
 
@@ -66,19 +52,26 @@ const Splice = (function() {
   }
 
   function textChunk(template) {
-    const match = template.match(/^[\S\s]+?(?=<<)/);
-    return match ? match[0] : false;
+    const match = template.match(/^[\S\s]+?::/);
+    if (!match) return template;
+
+    if (match[0].match(/(?<!\\)::/)) {
+      return match[0].slice(0, -2);
+    } else {
+      return match[0] + textChunk(template.slice(match[0].length));
+    }
   }
 
   // parseFunction :: String -> Array{String, Object}
   function parseFunction(template) {
     let tokens = '';
 
-    let [ token, op ] = template.match(/<<~\s*(\w+)/);
+    let [ token, op ] = template.match(/^::~\s*(\w+)/);
     tokens += token;
     template = template.slice(token.length);
 
-    [ token ] = template.match(/(\s+'?[\w.$]+)+\s*?>>/);
+    // [ token ] = template.match(/(\s+[\S]+)+\s*?(?<!\\){/);
+    [ token ] = template.match(/[\S\s]+?(?<!\\){/);
     let args = token.match(/'?[\w.$]+/g);
     tokens += token;
     template = template.slice(token.length);
@@ -114,16 +107,21 @@ const Splice = (function() {
     let count = 1;
 
     while (count != 0) {
-      let [ token ] = template.match(/(.|\s)*?<<.*?>>/);
+      let token;
+      try {
+        [ token ] = template.match(/[\S\s]*?(?<!\\):(?<!\\):/);
+      } catch (error) {
+        throw "SPLICE SYNTAX ERROR: Expecting '}::' to close function body.";
+      }
 
-      if (token.match(/<<~/)) {
+      if (template[token.length] == '~') {
         count++;
-      } else if (token.match(/<<\s*end\s*>>/)) {
+      } else if (token.match(/(?<!\\)\}(?<!\\):(?<!\\):/)) {
         count--;
       }
 
       if (count == 0) {
-        body = resultToken + token.match(/(\s|.)*(?=<<\s*end)/)[0];
+        body = resultToken + token.match(/([\S\s])*(?=(?<!\\)\})/)[0];
       }
       resultToken += token;
       template = template.slice(token.length);
@@ -134,7 +132,7 @@ const Splice = (function() {
 
   // parseBinding :: String -> Array{String, Object}
   function parseBinding(template) {
-    let [ token, str ] = template.match(/<<\s*([\w\.\$]+)\s*>>/);
+    let [ token, str ] = template.match(/(?<!\\):(?<!\\):\s*([\w\.\$]+)\s*(?<!\\):(?<!\\):/);
     let arr = str.split('.');
     const name = arr[0];
     const chain = arr.slice(1);
@@ -157,10 +155,22 @@ const Splice = (function() {
       case "binding":
         return expr.chain.reduce((data, prop) => data[prop], scope[expr.name]);
       case 'text':
-        return expr.value;
+        return escape(expr.value);
       default:
         throw "Invalid Node Type in AST";
     }
+  }
+
+  // escape :: String -> String
+  function escape(text) {
+    let escaped = '';
+    let startIdx = 0;
+    for (match of text.matchAll(/\\[\S\s]/g)) {
+      escaped += text.slice(startIdx, match.index);
+      escaped += match[0].slice(1);
+      startIdx = match.index + 2;
+    }
+    return escaped + text.slice(startIdx);
   }
 
   // IN-TEMPLATE HELPER FUNCTIONS
@@ -278,10 +288,5 @@ const testScope = {
 
 Splice.render(testScope);
 
-// let text = "<p>hello \\:: \\K bye.</p>";
-// console.log(text);
-
-// let b = document.querySelector('#test').innerHTML.trim();
-// console.log(b);
-//
-// console.log(escape(b));
+// Negative Look behind (?<!\\) -> prevents matching escaped characters
+// i.e /(?<!\\)::/ matches :: but not \::
