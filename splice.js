@@ -13,6 +13,7 @@ const Splice = (function() {
 
   // parse :: String -> Array{Object}
   function parse(template) {
+    template = escape(template);
     const ast = [];
 
     while (template) {
@@ -29,6 +30,18 @@ const Splice = (function() {
     // - op
     //   - type, name, args[], body(AST)
     return ast;
+  }
+
+  // escape :: String -> String
+  function escape(text) {
+    let escaped = '';
+    let startIdx = 0;
+    for (match of text.matchAll(/\\[\S\s]/g)) {
+      escaped += text.slice(startIdx, match.index);
+      escaped += match[0].slice(1);
+      startIdx = match.index + 2;
+    }
+    return escaped + text.slice(startIdx);
   }
 
   // parseToken :: String, !Array{Object} -> String
@@ -262,3 +275,13 @@ const testScope = {
     ],
   ],
 };
+
+Splice.render(testScope);
+
+// let text = "<p>hello \\:: \\K bye.</p>";
+// console.log(text);
+
+// let b = document.querySelector('#test').innerHTML.trim();
+// console.log(b);
+//
+// console.log(escape(b));
