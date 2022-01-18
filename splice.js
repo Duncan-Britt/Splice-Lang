@@ -72,9 +72,8 @@ const Splice = (function() {
     tokens += token;
     template = template.slice(token.length);
 
-    // [ token ] = template.match(/(\s+[\S]+)+\s*?(?<!\\){/);
     [ token ] = template.match(/[\S\s]+?(?<!\\){/);
-    let args = token.match(/'?[\w.$]+/g);
+    let args = token.slice(0, -1).match(/\S+/g) || [];
     tokens += token;
     template = template.slice(token.length);
 
@@ -189,6 +188,12 @@ const Splice = (function() {
     return evaluate(expr, innerScope) ? evaluateAll(body, innerScope) : '';
   };
 
+  // unless :: Object, Object, Array{Object} -> String
+  templateFns.unless = (scope, expr, body) => {
+    const innerScope = Object.assign({}, scope);
+    return evaluate(expr, innerScope) ? '' : evaluateAll(body, innerScope);
+  };
+
   // each :: Object, Object, Array{Object} -> String
   //      :: Object, Object, Object, Object, Array{Object} -> String
   templateFns.each = (scope, expr, as, alias, body) => {
@@ -224,6 +229,14 @@ const Splice = (function() {
     }
     return '';
   };
+
+  // in :: Object, Object -> String
+  templateFns.in = (scope, binding, body) => {
+    return evaluateAll(body, evaluate(binding, scope));
+  };
+
+  // comment :: Object -> String
+  templateFns.comment = (_) => '';
 
   // partial :: Object, Array{Object} -> String
   templateFns.partial = (scope, expr) => {
@@ -285,6 +298,8 @@ const testScope = {
       ],
     ],
   ],
+
+  person: { name: 'bob', job: 'slob'},
 };
 
 Splice.render(testScope);
