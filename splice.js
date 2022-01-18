@@ -15,7 +15,7 @@ const Splice = (function() {
   // - text
   //   - type, value
   // - binding
-  //   - type, name, chain
+  //   - type, name, chain, escape
   // - arg
   //   - type, name
   // - op
@@ -88,7 +88,7 @@ const Splice = (function() {
       let arr = str.split('.');
       const name = arr[0];
       const chain = arr.slice(1);
-      return {type: 'binding', name, chain};
+      return {type: 'binding', name, chain, escape: true};
     });
 
     const expr = {
@@ -132,11 +132,40 @@ const Splice = (function() {
 
   // parseBinding :: String -> Array{String, Object}
   function parseBinding(template) {
-    let [ token, str ] = template.match(/(?<!\\)\((?<!\\):\s*([\w\.\$]+)\s*(?<!\\):(?<!\\)\)/);
+    let escape = true;
+    if (template[2] == '!') {
+      escape = false;
+    }
+
+    let chunk;
+    if (escape) {
+      chunk = template
+        .match(/(?<!\\)\((?<!\\):[\S\s]*?(?=(?<!\\):(?<!\\)\))/)[0]
+    } else {
+      chunk = template
+        .match(/(?<!\\)\((?<!\\):(?<!\\)![\S\s]*?(?=(?<!\\):(?<!\\)\))/)[0]
+    }
+
+    let testChunk = escape ? chunk.slice(2) : chunk.slice(3);
+
+    testChunk.split('').forEach(chr => {
+      if (!chr.match(/[ \w\.\$]/)) {
+        throw `SPLICE SYNTAX ERROR: Unexpected char ${chr} in (:${testChunk}:) `;
+      }
+    });
+
+    let token, str;
+    if (escape) {
+      [ token, str ] = template.match(/(?<!\\)\((?<!\\):\s*([\w\.\$]+)\s*(?<!\\):(?<!\\)\)/);
+    } else {
+      [ token, str ] = template.match(/(?<!\\)\((?<!\\):(?<!\\)!\s*([\w\.\$]+)\s*(?<!\\):(?<!\\)\)/);
+    }
+
     let arr = str.split('.');
     const name = arr[0];
     const chain = arr.slice(1);
-    return [token, {type: 'binding', name, chain }];
+    // debugger;
+    return [token, {type: 'binding', name, chain, escape }];
   }
 
   // SPLICE ENGINE - EVALUATOR
@@ -153,16 +182,31 @@ const Splice = (function() {
       case "op":
         return templateFns[expr.name](scope, ...expr.args, expr.body);
       case "binding":
-        return expr.chain.reduce((data, prop) => data[prop], scope[expr.name]);
+        let value = expr.chain.reduce((data, prop) => data[prop], scope[expr.name]);
+        if (typeof value == 'string') {
+          return expr.escape ? escapeHTML(value) : value;
+        }
+
+        return value;
       case 'text':
-        return escape(expr.value);
+        return escapeChars(expr.value);
       default:
         throw "Invalid Node Type in AST";
     }
   }
 
-  // escape :: String -> String
-  function escape(text) {
+// escapeHTML :: String -> String
+  function escapeHTML(unsafe) {
+    return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+ }
+
+  // escapeChars :: String -> String
+  function escapeChars(text) {
     let escaped = '';
     let startIdx = 0;
     for (match of text.matchAll(/\\[\S\s]/g)) {
