@@ -175,4 +175,4 @@ The splice source code makes use of arrow functions which aren't supported by so
 
 
 ### Documentation
-The full documentation for Splice is published at https://duncan-britt.github.io/splice-docs/#language_guide
+The full documentation for Splice is published at https://duncan-britt.github.io/splice-docs/
