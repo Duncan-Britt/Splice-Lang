@@ -4,7 +4,7 @@
 
 ## HTML Templating
 
-##### Include a script tag in your html file with an id of `template`, or a custom id if you prefer. Set the type attribute to `text/x-template`.
+Include a script tag in your html file with an id of `template`, or a custom id if you prefer. Set the type attribute to `text/x-template`.
 
 ```javascript
 <script id="template" type="text/x-template">
@@ -18,7 +18,7 @@
 </script>
 ```
 
-##### Make sure to also link to a file containing the Splice JavaScript engine before linking to JS files which utilize Splice.
+Make sure to also link to a file containing the Splice JavaScript engine before linking to JS files which utilize Splice.
 
 ```html
 <head>
@@ -28,19 +28,19 @@
 </head>
 ```
 
-##### Call `Splice.render` and watch your template be rendered in place!
+Call `Splice.render` and watch your template be rendered in place!
 
 ```javascript
 Splice.render(yourData, "#id-of-script-tag");
 ```
 
-##### If your template script tag has an id of "template", you may omit the CSS selector.
+If your template script tag has an id of "template", you may omit the CSS selector.
 
 ```javascript
 Splice.render(yourData);
 ```
 
-##### For more control, call `Splice.compile` to return a function which returns a string for a given scope.
+For more control, call `Splice.compile` to return a function which returns a string for a given scope.
 
 ```javascript
 const evaluatorFn = Splice.compile(templateText);
@@ -57,13 +57,13 @@ const finalText = evaluatorFn({
 
 ### Partials
 
-##### To register your partial template, simply invoke `Splice.registerPartial` with the id of your template.
+To register your partial template, simply invoke `Splice.registerPartial` with the id of your template.
 
 ```javascript
 Splice.registerPartial('sidebar_template');
 ```
 
-##### Invoke a partial in your template:
+Invoke a partial in your template:
 
 ```coffeescript
 (:~ partial sidebar_template {}:)
@@ -71,14 +71,14 @@ Splice.registerPartial('sidebar_template');
 
 ### Iteration
 
-##### To iterate through a collection, invoke `each` and pass an array. Within the body of each, you may reference elements of the collection with `$`.
+To iterate through a collection, invoke `each` and pass an array. Within the body of each, you may reference elements of the collection with `$`.
 
 ```coffeescript
 (:~ each baskets {
   <p>(: $ :)</p>
 }:)
 ```
-##### Alternatively, you may refer to elements of your collection using an alias defined with `as`.
+Alternatively, you may refer to elements of your collection using an alias defined with `as`.
 
 ```javascript
 (:~ each baskets as 'aBasket {
@@ -86,7 +86,7 @@ Splice.registerPartial('sidebar_template');
 }:)
 ```
 
-##### Scopes may be nested as deeply as you please.
+Scopes may be nested as deeply as you please.
 
 ```javascript
 (:~ each valley.o as 'bogs {
@@ -100,7 +100,7 @@ Splice.registerPartial('sidebar_template');
 
 ### Conditionals
 
-##### Splice has two conditional functions: `if` and `unless`. They both takes one argument and a body which may be evaluated depending on whether the argument is truthy or falsy.
+Splice has two conditional functions: `if` and `unless`. They both takes one argument and a body which may be evaluated depending on whether the argument is truthy or falsy.
 
 ```coffeescript
 (:~ if isValid {
@@ -114,13 +114,13 @@ Splice.registerPartial('sidebar_template');
 
 ### Assignment
 
-##### Assign bindings in the current scope using the assignment function: `def`.
+Assign bindings in the current scope using the assignment function: `def`.
 
 ```ruby
 (:~ def 'snack meal {}:)
 ```
 
-##### Then use the new binding to access its value within the current scope.
+Then use the new binding to access its value within the current scope.
 
 ```html
 <p>I'm just going to have a (: snack :).</p>
@@ -128,7 +128,7 @@ Splice.registerPartial('sidebar_template');
 
 ### Properties
 
-##### If a binding references an object, access its properties using dot-notation.
+If a binding references an object, access its properties using dot-notation.
 
 ```coffeescript
 (: person.community.region :)
@@ -136,14 +136,14 @@ Splice.registerPartial('sidebar_template');
 
 ### Execution Context
 
-##### `in` takes a scope object uses it to create different context for evaluating bindings within its body. For instance:
+`in` takes a scope object uses it to create different context for evaluating bindings within its body. For instance:
 
 ```coffeescript
 <li>(: person.name :)</li>
 <li>(: person.job :)</li>
 ```
 
-##### becomes
+becomes
 
 ```coffeescript
 (:~ in person {
@@ -154,14 +154,14 @@ Splice.registerPartial('sidebar_template');
 
 ### Escaping
 
-##### By default, text referenced by a binding is HTML-escaped to avoid cross-site scripting. To render unescaped html, use (:! instead of (: when evaluating a binding.
+By default, text referenced by a binding is HTML-escaped to avoid cross-site scripting. To render unescaped html, use (:! instead of (: when evaluating a binding.
 
 ```
 (:~ def 'unsafe '<a>docs</a> {}:)
 <li>(:! unsafe :)</li>
 ```
 
-##### In addition, any character anywhere in a Splice template may be explicitly escaped by prefixing it with \\. This prevents a character from being evaluated as syntax. For instance, \\(: will render (: as text. To display a backslash in the template, you must escape it.
+In addition, any character anywhere in a Splice template may be explicitly escaped by prefixing it with \\. This prevents a character from being evaluated as syntax. For instance, \\(: will render (: as text. To display a backslash in the template, you must escape it.
 
 ```html
 <p>A Splice expression begins with \(: and ends with \:).</p>
@@ -169,4 +169,4 @@ Splice.registerPartial('sidebar_template');
 
 ### Browser Compatibility
 
-##### The splice source code makes use of arrow functions which aren't supported by some older browsers such as Internet Explorer 11. The source code can easily be transpiled to es5 compatible code using a tool like Babel.
+The splice source code makes use of arrow functions which aren't supported by some older browsers such as Internet Explorer 11. The source code can easily be transpiled to es5 compatible code using a tool like Babel.
