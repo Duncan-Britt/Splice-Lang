@@ -120,7 +120,7 @@ Splice.render(yourData, "#id-of-script-tag");
           <p>If your template script tag has an id of "template", you may omit the CSS selector.</p>
 
           <pre><code class="language-javascript">
-Splice.render(yourData)
+Splice.render(yourData);
           </code></pre>
 
           <p>For more control, call <code>Splice.compile</code> to return a function which returns a string for a given scope.</p>
@@ -141,7 +141,7 @@ const finalText = evaluatorFn({
 
         <section class="article">
           <h2>Partials</h2>
-          <p>To register your partial template, simply invoke <code>Splice.registerPartial</code> with the id of your template</p>
+          <p>To register your partial template, simply invoke <code>Splice.registerPartial</code> with the id of your template.</p>
 
           <pre><code class="language-javascript">
 Splice.registerPartial('sidebar_template');
@@ -156,7 +156,7 @@ Splice.registerPartial('sidebar_template');
 
         <section class="article">
           <h2>Iteration</h2>
-          <p>To iterate through a collection, invoke <code>each</code> and pass a binding. Within the body of <code>each</code>, you may reference elements of the collection with <code>$</code></p>
+          <p>To iterate through a collection, invoke <code>each</code> and pass an array. Within the body of <code>each</code>, you may reference elements of the collection with <code>$</code>.</p>
 
           <pre><code class="language-splice">
 (:~ each baskets {
@@ -220,7 +220,7 @@ Splice.registerPartial('sidebar_template');
           <pre><code class="language-splice">
 (:~ def 'snack meal {}:)
           </code></pre>
-          <p>Then use the new binding to access its value within the current scope</p>
+          <p>Then use the new binding to access its value within the current scope.</p>
           <pre><code class="language-splice">
 &lt;p&gt;I'm just going to have a (: snack :).&lt;/p&gt;
           </code></pre>
