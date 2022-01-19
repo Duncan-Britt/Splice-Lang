@@ -80,7 +80,7 @@ To iterate through a collection, invoke `each` and pass an array. Within the bod
 ```
 Alternatively, you may refer to elements of your collection using an alias defined with `as`.
 
-```javascript
+```
 (:~ each baskets as 'aBasket {
   <p>(: aBasket :)</p>
 }:)
@@ -88,7 +88,7 @@ Alternatively, you may refer to elements of your collection using an alias defin
 
 Scopes may be nested as deeply as you please.
 
-```javascript
+```
 (:~ each valley.o as 'bogs {
   (:~ each bogs as 'holes {
     (:~ each holes as 'tree {
@@ -102,7 +102,7 @@ Scopes may be nested as deeply as you please.
 
 Splice has two conditional functions: `if` and `unless`. They both takes one argument and a body which may be evaluated depending on whether the argument is truthy or falsy.
 
-```coffeescript
+```
 (:~ if isValid {
 <p>Access Granted</p>
 }:)
