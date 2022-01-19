@@ -1,8 +1,6 @@
 // Syntax Rules
-// - binding: << [name] >>
-// - op: <<~ [name] [arg] [arg2] [arg3] [...] >>
-//         [body]
-//       << end >>
+// - binding: (: [name] :)
+// - op: (:~ [name] [arg] [arg2] [arg3] [...] {[body]}:)
 // - arg: ( binding | 'text )
 // - non-arg text: anything else
 
@@ -164,7 +162,6 @@ const Splice = (function() {
     let arr = str.split('.');
     const name = arr[0];
     const chain = arr.slice(1);
-    // debugger;
     return [token, {type: 'binding', name, chain, escape }];
   }
 
@@ -282,7 +279,7 @@ const Splice = (function() {
   // comment :: Object -> String
   templateFns.comment = (_) => '';
 
-  // partial :: Object, Array{Object} -> String
+  // partial :: Object, Object -> String
   templateFns.partial = (scope, expr) => {
     return evaluateAll(partials[expr.name], scope);
   }
@@ -323,30 +320,19 @@ const Splice = (function() {
     },
 
     // Splice.registerPartial :: String, String
-    registerPartial(id) {
-      const templateElement = document.getElementById(id);
-      const template = templateElement.innerHTML;
-      partials[id] = parse(template);
+    registerPartial(name, template) {
+      if (template) {
+        partials[name] = parse(template);
+        return;
+      }
+
+      const templateElement = document.getElementById(name);
+      template = templateElement.innerHTML;
+      partials[name] = parse(template);
     },
+
   };
 }());
-
-const testScope = {
-  outest: [
-    [
-      [
-        {title: 'Introduction', id: 'introduction'},
-        {title: 'Simple Expressions', id: 'simple_expressions'},
-        {title: 'Installation', id: 'installation'},
-        {title: 'Partials', id: 'partials'},
-      ],
-    ],
-  ],
-
-  person: { name: 'bob', job: 'slob'},
-};
-
-Splice.render(testScope);
 
 // Negative Look behind (?<!\\) -> prevents matching escaped characters
 // i.e /(?<!\\)::/ matches :: but not \::
