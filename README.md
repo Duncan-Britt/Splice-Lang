@@ -2,6 +2,8 @@
 
 #### Splice supports nesting, partial templates, iterators, conditionals, variable assignment, local scope, comments, escape characters, and escapes HTML by default. In its minified form, it is only 2.16 KB, uncompressed, and has no dependencies.
 
+### To learn more see the [documentation website.](https://duncan-britt.github.io/splice-docs/#language_guide)
+
 ## HTML Templating
 
 Include a script tag in your html file with an id of `template`, or a custom id if you prefer. Set the type attribute to `text/x-template`.
@@ -170,3 +172,7 @@ In addition, any character anywhere in a Splice template may be explicitly escap
 ### Browser Compatibility
 
 The splice source code makes use of arrow functions which aren't supported by some older browsers such as Internet Explorer 11. The source code can easily be transpiled to es5 compatible code using a tool like Babel.
+
+
+### Documentation
+The full documentation for Splice is published at https://duncan-britt.github.io/splice-docs/
