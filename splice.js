@@ -30,7 +30,7 @@ const Splice = (function() {
 
   // parseToken :: String, !Array{Object} -> String
   function parseToken(template, ast) {
-    let token, match, expr;
+    let token, match, expr, _;
     if (match = template.match(/^\(:/)) {
 
       if (template[2] == '~') {
@@ -42,22 +42,40 @@ const Splice = (function() {
       }
 
     } else {
-      token = textChunk(template)
+      [ token, _ ] = strTok(template, '(:');
       ast.push({type: 'text', value: token});
     }
 
     return template.slice(token.length);
   }
 
-  function textChunk(template) {
-    const match = template.match(/^[\S\s]+?(?<!\\)\(:/);
-    if (!match) return template;
+  // function textChunk(template) {
+  //   const match = template.match(/^[\S\s]+?\(:/);
+  //   if (!match) return template;
+  //
+  //   if (match[0].match(/\(:/)) {
+  //     return match[0].slice(0, -2);
+  //   } else {
+  //     return match[0] + textChunk(template.slice(match[0].length));
+  //   }
+  // }
 
-    if (match[0].match(/(?<!\\)\(:/)) {
-      return match[0].slice(0, -2);
-    } else {
-      return match[0] + textChunk(template.slice(match[0].length));
+// strTok :: String, String -> Array{String, String}
+  function strTok(text, endChars) {
+    let i = 0;
+    let j = endChars.length;
+    while (j <= text.length) {
+      if (text.slice(i, j) == endChars && text.slice(i-1, j) != '\\'+endChars) {
+        return [text.slice(0, i), text.slice(i)];
+      }
+      i++;
+      j++;
     }
+    return [text, ''];
+  }
+
+  function parseOperator(template) {
+    let [ op, template ] = strTok(template, )
   }
 
   // parseFunction :: String -> Array{String, Object}
@@ -68,7 +86,7 @@ const Splice = (function() {
     tokens += token;
     template = template.slice(token.length);
 
-    [ token ] = template.match(/[\S\s]+?(?<!\\){/);
+    [ token ] = template.match(/[\S\s]+?{/);
     let args = token.slice(0, -1).match(/\S+/g) || [];
     tokens += token;
     template = template.slice(token.length);
@@ -105,19 +123,19 @@ const Splice = (function() {
     while (count != 0) {
       let token;
       try {
-        [ token ] = template.match(/[\S\s]*?(?<!\\)((?<!\\)\((?<!\\):|(?<!\\):(?<!\\)\))/);
+        [ token ] = template.match(/[\S\s]*?(\(:|:\))/);
       } catch (error) {
         throw "SPLICE SYNTAX ERROR: Expecting '}:)' to close function body.";
       }
 
       if (template[token.length] == '~') {
         count++;
-      } else if (token.match(/(?<!\\)\}(?<!\\):(?<!\\)\)/)) {
+      } else if (token.match(/\}:\)/)) {
         count--;
       }
 
       if (count == 0) {
-        body = resultToken + token.match(/([\S\s])*(?=(?<!\\)\})/)[0];
+        body = resultToken + token.match(/([\S\s])*(?=\})/)[0];
       }
       resultToken += token;
       template = template.slice(token.length);
@@ -136,10 +154,10 @@ const Splice = (function() {
     let chunk;
     if (escape) {
       chunk = template
-        .match(/(?<!\\)\((?<!\\):[\S\s]*?(?=(?<!\\):(?<!\\)\))/)[0]
+        .match(/\(:[\S\s]*?(?=:\))/)[0]
     } else {
       chunk = template
-        .match(/(?<!\\)\((?<!\\):(?<!\\)![\S\s]*?(?=(?<!\\):(?<!\\)\))/)[0]
+        .match(/\(:![\S\s]*?(?=:\))/)[0]
     }
 
     let testChunk = escape ? chunk.slice(2) : chunk.slice(3);
@@ -152,9 +170,9 @@ const Splice = (function() {
 
     let token, str;
     if (escape) {
-      [ token, str ] = template.match(/(?<!\\)\((?<!\\):\s*([\w\.\$]+)\s*(?<!\\):(?<!\\)\)/);
+      [ token, str ] = template.match(/\(:\s*([\w\.\$]+)\s*:\)/);
     } else {
-      [ token, str ] = template.match(/(?<!\\)\((?<!\\):(?<!\\)!\s*([\w\.\$]+)\s*(?<!\\):(?<!\\)\)/);
+      [ token, str ] = template.match(/\(:!\s*([\w\.\$]+)\s*:\)/);
     }
 
     let arr = str.split('.');
@@ -333,5 +351,11 @@ const Splice = (function() {
   };
 }());
 
-// Negative Look behind (?<!\\) -> prevents matching escaped characters
-// i.e /(?<!\\)::/ matches :: but not \::
+// Negative Look behind  -> prevents matching escaped characters
+// i.e /::/ matches :: but not \::
+
+// <p>\(: <-- this was escaped :)</p>
+// <p>(\:~ <-- this was escaped :)</p>
+// <p>(:~ if outest {
+// \}:) <-- this was escaped
+// \}:)
