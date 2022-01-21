@@ -6,18 +6,16 @@
 
 // Splice.compile :: String="#template"
 const Splice = (function() {
-  // SPLICE ENGINE - PARSER
-  // ======================
+  // SPLICE ENGINE - LEXER & PARSER
+  // ==============================
 
   // Abstract Syntax Tree Node Types:
   // - text
   //   - type, value
   // - binding
   //   - type, name, chain, escape
-  // - arg
-  //   - type, name
   // - op
-  //   - type, name, args[], body(AST)
+  //   - type, name, args[binding||text], body(AST)
 
   // parse :: String -> Array{Object}
   function parse(template) {
@@ -78,7 +76,7 @@ const Splice = (function() {
     [ token, bodyAST ] = parseBody(template);
     tokens += token;
 
-    args = args.map(str => {
+    args = args.map(function(str) {
       if (str[0] == "'") {
         return {type: 'text', value: str};
       }
@@ -146,7 +144,7 @@ const Splice = (function() {
 
     let testChunk = escape ? chunk.slice(2) : chunk.slice(3);
 
-    testChunk.split('').forEach(chr => {
+    testChunk.split('').forEach(function(chr) {
       if (!chr.match(/[ \w\.\$]/)) {
         throw `SPLICE SYNTAX ERROR: Unexpected char ${chr} in (:${testChunk}:) `;
       }
@@ -165,12 +163,12 @@ const Splice = (function() {
     return [token, {type: 'binding', name, chain, escape }];
   }
 
-  // SPLICE ENGINE - EVALUATOR
+  // SPLICE ENGINE - GENERATOR
   // =========================
 
   // evaluateAll :: Array, Object -> String
   function evaluateAll(ast, scope) {
-    return ast.reduce((html, expr) => html + evaluate(expr, scope), "");
+    return ast.reduce(function(html, expr) { return html + evaluate(expr, scope); }, "");
   }
 
   // evaluate :: Object, Object -> String
@@ -179,7 +177,8 @@ const Splice = (function() {
       case "op":
         return templateFns[expr.name](scope, ...expr.args, expr.body);
       case "binding":
-        let value = expr.chain.reduce((data, prop) => data[prop], scope[expr.name]);
+      // oportunity for an uncaught reference error here.
+        let value = expr.chain.reduce(function(data, prop) { return data[prop]; }, scope[expr.name]);
         if (typeof value == 'string') {
           return expr.escape ? escapeHTML(value) : value;
         }
@@ -192,7 +191,80 @@ const Splice = (function() {
     }
   }
 
-// escapeHTML :: String -> String
+  // IN-TEMPLATE HELPER FUNCTIONS
+  // ============================
+
+  // Namespace for partial templates
+  const partials = Object.create(null);
+
+  // Namespace for In-Template Functions
+  const templateFns = Object.create(null);
+
+  // if :: Object, Object, Array{Object} -> String
+  templateFns.if = function(scope, expr, body) {
+    const innerScope = Object.assign({}, scope);
+    return evaluate(expr, innerScope) ? evaluateAll(body, innerScope) : '';
+  };
+
+  // unless :: Object, Object, Array{Object} -> String
+  templateFns.unless = function(scope, expr, body) {
+    const innerScope = Object.assign({}, scope);
+    return evaluate(expr, innerScope) ? '' : evaluateAll(body, innerScope);
+  };
+
+  // each :: Object, Object, Array{Object} -> String
+  //      :: Object, Object, Object, Object, Array{Object} -> String
+  templateFns.each = function(scope, expr, as, alias, body) {
+    if (!body && as) {
+      body = as;
+      as = null;
+      alias = null;
+    }
+
+    return evaluate(expr, scope).reduce(function(html, item) {
+      const innerScope = Object.assign({}, scope);
+      if (alias) {
+        innerScope[alias.value.slice(1)] = item
+      }
+
+      innerScope.$ = item;
+      return html + evaluateAll(body, innerScope);
+    }, '');
+  };
+
+  // def :: !Object, Object, Object
+  templateFns.def = function(scope, alias, expr) {
+    switch (expr.type) {
+      case 'binding':
+        scope[alias.value.slice(1)] = (
+        expr.chain.reduce(function(data, prop) { return data[prop]; }, scope[expr.name]));
+        break;
+      case 'text':
+        scope[alias.value.slice(1)] = expr.value.slice(1);
+        break;
+      default:
+        throw new SyntaxError('Unexpected');
+    }
+    return '';
+  };
+
+  // in :: Object, Object -> String
+  templateFns.in = function(scope, binding, body) {
+    return evaluateAll(body, evaluate(binding, scope));
+  };
+
+  // comment :: Object -> String
+  templateFns.comment = function(_) { return ''; };
+
+  // partial :: Object, Object -> String
+  templateFns.partial = function(scope, expr) {
+    return evaluateAll(partials[expr.name], scope);
+  }
+
+  // INTERNAL UTILITY FUNCTIONS
+  // ==========================
+
+  // escapeHTML :: String -> String
   function escapeHTML(unsafe) {
     return unsafe
     .replace(/&/g, "&amp;")
@@ -213,79 +285,6 @@ const Splice = (function() {
     }
     return escaped + text.slice(startIdx);
   }
-
-  // IN-TEMPLATE HELPER FUNCTIONS
-  // ============================
-
-  // Namespace for partial templates
-  const partials = Object.create(null);
-
-  // Namespace for In-Template Functions
-  const templateFns = Object.create(null);
-
-  // if :: Object, Object, Array{Object} -> String
-  templateFns.if = (scope, expr, body) => {
-    const innerScope = Object.assign({}, scope);
-    return evaluate(expr, innerScope) ? evaluateAll(body, innerScope) : '';
-  };
-
-  // unless :: Object, Object, Array{Object} -> String
-  templateFns.unless = (scope, expr, body) => {
-    const innerScope = Object.assign({}, scope);
-    return evaluate(expr, innerScope) ? '' : evaluateAll(body, innerScope);
-  };
-
-  // each :: Object, Object, Array{Object} -> String
-  //      :: Object, Object, Object, Object, Array{Object} -> String
-  templateFns.each = (scope, expr, as, alias, body) => {
-    if (!body && as) {
-      body = as;
-      as = null;
-      alias = null;
-    }
-
-    return evaluate(expr, scope).reduce((html, item) => {
-      const innerScope = Object.assign({}, scope);
-      if (alias) {
-        innerScope[alias.value.slice(1)] = item
-      }
-
-      innerScope.$ = item;
-      return html + evaluateAll(body, innerScope);
-    }, '');
-  };
-
-  // def :: !Object, Object, Object
-  templateFns.def = (scope, alias, expr) => {
-    switch (expr.type) {
-      case 'binding':
-        scope[alias.value.slice(1)] = (
-        expr.chain.reduce((data, prop) => data[prop], scope[expr.name]));
-        break;
-      case 'text':
-        scope[alias.value.slice(1)] = expr.value.slice(1);
-        break;
-      default:
-        throw new SyntaxError('Unexpected');
-    }
-    return '';
-  };
-
-  // in :: Object, Object -> String
-  templateFns.in = (scope, binding, body) => {
-    return evaluateAll(body, evaluate(binding, scope));
-  };
-
-  // comment :: Object -> String
-  templateFns.comment = (_) => '';
-
-  // partial :: Object, Object -> String
-  templateFns.partial = (scope, expr) => {
-    return evaluateAll(partials[expr.name], scope);
-  }
-
-  // INTERNAL UTILITY FUNCTIONS
-  // ==========================
 
   // replaceNodeWithHtml :: !DOM Node, String
   function replaceNodeWithHTML(node, html) {
@@ -316,7 +315,7 @@ const Splice = (function() {
     // Splice.compile :: String -> [Object] -> String
     compile(template) {
       const ast = parse(template);
-      return scope => evaluateAll(ast, scope);
+      return function(scope) { return evaluateAll(ast, scope); };
     },
 
     // Splice.registerPartial :: String, String
