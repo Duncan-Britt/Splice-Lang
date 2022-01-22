@@ -1,6 +1,6 @@
 # Splice is a templating language
 
-#### Splice supports nesting, partial templates, iterators, conditionals, variable assignment, local scope, comments, escape characters, and escapes HTML by default. In its minified form, it is only 2.16 KB, uncompressed, and has no dependencies.
+#### Splice supports nesting, partial templates, iterators, conditionals, variable assignment, local scope, comments, escape characters, and escapes HTML by default. In its minified form, it is only 3.06 KB, uncompressed, and has no dependencies.
 
 ### To learn more see the [documentation website.](https://duncan-britt.github.io/splice-docs/#language_guide)
 
@@ -20,7 +20,7 @@ Include a script tag in your html file with an id of `template`, or a custom id 
 </script>
 ```
 
-Make sure to also link to a file containing the Splice JavaScript engine before linking to JS files which utilize Splice.
+Make sure to also link to a file containing the Splice engine before linking to JS files which utilize Splice.
 
 ```html
 <head>
@@ -42,7 +42,7 @@ If your template script tag has an id of "template", you may omit the CSS select
 Splice.render(yourData);
 ```
 
-For more control, call `Splice.compile` to return a function which returns a string for a given scope.
+For more control, call `Splice.compile` to return a function which returns a string for a given data set.
 
 ```javascript
 const evaluatorFn = Splice.compile(templateText);
@@ -88,7 +88,7 @@ Alternatively, you may refer to elements of your collection using an alias defin
 }:)
 ```
 
-Scopes may be nested as deeply as you please.
+Invocations may be nested as deeply as you please.
 
 ```
 (:~ each valley.o as 'bogs {
@@ -171,7 +171,7 @@ In addition, any character anywhere in a Splice template may be explicitly escap
 
 ### Browser Compatibility
 
-The splice source code makes use of arrow functions which aren't supported by some older browsers such as Internet Explorer 11. The source code can easily be transpiled to es5 compatible code using a tool like Babel.
+Splice does not support Internet Explorer.
 
 
 ### Documentation
