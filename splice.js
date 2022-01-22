@@ -17,6 +17,32 @@ const Splice = (function() {
   // - op
   //   - type, name, args[binding||text], body(AST)
 
+  // strTok :: String, String -> String, String
+  function strTok(text, endChars, chop=false) {
+    let i = 0;
+    let j = endChars.length;
+    while (j <= text.length) {
+      if (text.slice(i, j) == endChars && text.slice(i-1, j) != '\\'+endChars) {
+        if (chop) {
+          return [text.slice(0, i), text.slice(i+endChars.length)];
+        } else {
+          return [text.slice(0, i), text.slice(i)];
+        }
+      }
+      i++;
+      j++;
+    }
+    return [text, ''];
+  }
+
+  // strTokOr :: String, Array{String} -> String, String
+  function strTokOr(text, endChars, chop) {
+    return endChars.slice(1).reduce(([token, template], endChr) => {
+      let [ tok, temp ] = strTok(text, endChr, chop);
+      return Math.min(tok.length, token.length) == tok.length ? [tok, temp] : [token, template];
+    }, strTok(text, endChars[0], chop));
+  }
+
   // parse :: String -> Array{Object}
   function parse(template) {
     const ast = [];
@@ -30,69 +56,35 @@ const Splice = (function() {
 
   // parseToken :: String, !Array{Object} -> String
   function parseToken(template, ast) {
-    let token, match, expr, _;
+    let token, match, expr;
+
     if (match = template.match(/^\(:/)) {
 
       if (template[2] == '~') {
-        [ token, expr ] = parseFunction(template);
+        [ expr, template ] = parseOperator(template);
         ast.push(expr);
       } else {
-        [ token, expr ] = parseBinding(template);
+        [ expr, template ] = parseBinding(template);
         ast.push(expr);
       }
 
     } else {
-      [ token, _ ] = strTok(template, '(:');
+      [ token, template ] = strTok(template, '(:');
       ast.push({type: 'text', value: token});
     }
 
-    return template.slice(token.length);
+    return template
   }
 
-  // function textChunk(template) {
-  //   const match = template.match(/^[\S\s]+?\(:/);
-  //   if (!match) return template;
-  //
-  //   if (match[0].match(/\(:/)) {
-  //     return match[0].slice(0, -2);
-  //   } else {
-  //     return match[0] + textChunk(template.slice(match[0].length));
-  //   }
-  // }
-
-// strTok :: String, String -> Array{String, String}
-  function strTok(text, endChars) {
-    let i = 0;
-    let j = endChars.length;
-    while (j <= text.length) {
-      if (text.slice(i, j) == endChars && text.slice(i-1, j) != '\\'+endChars) {
-        return [text.slice(0, i), text.slice(i)];
-      }
-      i++;
-      j++;
-    }
-    return [text, ''];
-  }
-
+  // parseOperator :: String -> Object, String
   function parseOperator(template) {
-    let [ op, template ] = strTok(template, )
-  }
-
-  // parseFunction :: String -> Array{String, Object}
-  function parseFunction(template) {
-    let tokens = '';
-
     let [ token, op ] = template.match(/^\(:~\s*(\w+)/);
-    tokens += token;
     template = template.slice(token.length);
 
-    [ token ] = template.match(/[\S\s]+?{/);
-    let args = token.slice(0, -1).match(/\S+/g) || [];
-    tokens += token;
-    template = template.slice(token.length);
+    [ token, template ] = strTok(template, '{');
+    let args = token.match(/\S+/g) || [];
 
-    [ token, bodyAST ] = parseBody(template);
-    tokens += token;
+    [ bodyAST, template ] = parseBody(template.slice(1));
 
     args = args.map(function(str) {
       if (str[0] == "'") {
@@ -112,73 +104,58 @@ const Splice = (function() {
       body: bodyAST,
     };
 
-    return [tokens, expr];
+    return [expr, template];
   }
 
-  // parseBody :: String -> Array{String, Array{Object}}
+  // parseBody :: String -> Array{Object}, String
   function parseBody(template) {
-    let resultToken = '';
     let body = '';
     let count = 1;
     while (count != 0) {
-      let token;
-      try {
-        [ token ] = template.match(/[\S\s]*?(\(:|:\))/);
-      } catch (error) {
+      [ token, template ] = strTokOr(template, ['(:~', '}:)']);
+      if (!template) {
         throw "SPLICE SYNTAX ERROR: Expecting '}:)' to close function body.";
       }
 
-      if (template[token.length] == '~') {
+      if (template.slice(0, 3) == '(:~')
         count++;
-      } else if (token.match(/\}:\)/)) {
+      else if (template.slice(0, 3) == '}:)')
         count--;
-      }
+      else
+        throw 'BUG'
 
       if (count == 0) {
-        body = resultToken + token.match(/([\S\s])*(?=\})/)[0];
+        body += token;
+      } else {
+        body += token + template.slice(0, 3);
       }
-      resultToken += token;
-      template = template.slice(token.length);
+
+      template = template.slice(3);
     }
 
-    return [resultToken, parse(body)];
+    return [parse(body), template];
   }
 
-  // parseBinding :: String -> Array{String, Object}
+  // parseBinding :: String -> Object, String
   function parseBinding(template) {
     let escape = true;
     if (template[2] == '!') {
       escape = false;
     }
 
-    let chunk;
+    let token;
+    [ token, template ] = strTok(template, ':)', true);
     if (escape) {
-      chunk = template
-        .match(/\(:[\S\s]*?(?=:\))/)[0]
+      token = token.slice(2);
     } else {
-      chunk = template
-        .match(/\(:![\S\s]*?(?=:\))/)[0]
+      token = token.slice(3);
     }
 
-    let testChunk = escape ? chunk.slice(2) : chunk.slice(3);
-
-    testChunk.split('').forEach(function(chr) {
-      if (!chr.match(/[ \w\.\$]/)) {
-        throw `SPLICE SYNTAX ERROR: Unexpected char ${chr} in (:${testChunk}:) `;
-      }
-    });
-
-    let token, str;
-    if (escape) {
-      [ token, str ] = template.match(/\(:\s*([\w\.\$]+)\s*:\)/);
-    } else {
-      [ token, str ] = template.match(/\(:!\s*([\w\.\$]+)\s*:\)/);
-    }
-
-    let arr = str.split('.');
+    let arr = token.trim().split('.');
     const name = arr[0];
     const chain = arr.slice(1);
-    return [token, {type: 'binding', name, chain, escape }];
+
+    return [{type: 'binding', name, chain, escape }, template];
   }
 
   // SPLICE ENGINE - GENERATOR
@@ -350,12 +327,3 @@ const Splice = (function() {
 
   };
 }());
-
-// Negative Look behind  -> prevents matching escaped characters
-// i.e /::/ matches :: but not \::
-
-// <p>\(: <-- this was escaped :)</p>
-// <p>(\:~ <-- this was escaped :)</p>
-// <p>(:~ if outest {
-// \}:) <-- this was escaped
-// \}:)
