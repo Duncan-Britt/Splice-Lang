@@ -172,8 +172,8 @@ const Splice = (function() {
       case "op":
         return templateFns[expr.name](scope, ...expr.args, expr.body);
       case "binding":
-      // oportunity for an uncaught reference error here.
         let value = expr.chain.reduce(function(data, prop) { return data[prop]; }, scope[expr.name]);
+
         if (typeof value == 'string') {
           return expr.escape ? escapeHTML(value) : value;
         }
@@ -237,8 +237,6 @@ const Splice = (function() {
       case 'text':
         scope[alias.value.slice(1)] = expr.value.slice(1);
         break;
-      default:
-        throw new SyntaxError('Unexpected');
     }
     return '';
   };
