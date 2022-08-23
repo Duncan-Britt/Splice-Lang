@@ -28,7 +28,7 @@ Make sure to also link to a file containing the Splice engine before linking to 
 </head>
 ```
 
-Call `Splice.render` with CSS selectors for your template source and destination element to render your template in the DOM.
+Call `Splice.render` with CSS selectors for your template source and destination elements to render your template in the DOM.
 
 ```javascript
 Splice.render(yourData, "#template-src", "#destination");
