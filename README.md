@@ -34,12 +34,6 @@ Call `Splice.render` with CSS selectors for your template source and destination
 Splice.render(yourData, "#template-src", "#destination");
 ```
 
-If your template script tag has an id of "template", you may omit the CSS selector.
-
-```javascript
-Splice.render(yourData);
-```
-
 For more control, call `Splice.compile` to return a function which returns a string for a given data set.
 
 ```javascript
