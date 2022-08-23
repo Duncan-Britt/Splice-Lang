@@ -84,6 +84,7 @@ const Splice = (function() {
     [ token, template ] = strTok(template, '{');
     let args = token.match(/\S+/g) || [];
 
+    let bodyAST;
     [ bodyAST, template ] = parseBody(template.slice(1));
 
     args = args.map(function(str) {
@@ -112,6 +113,7 @@ const Splice = (function() {
     let body = '';
     let count = 1;
     while (count != 0) {
+      let token;
       [ token, template ] = strTokOr(template, ['(:~', '}:)']);
       if (!template) {
         throw "SPLICE SYNTAX ERROR: Expecting '}:)' to close function body.";
@@ -172,8 +174,8 @@ const Splice = (function() {
       case "op":
         return templateFns[expr.name](scope, ...expr.args, expr.body);
       case "binding":
+      // oportunity for an uncaught reference error here.
         let value = expr.chain.reduce(function(data, prop) { return data[prop]; }, scope[expr.name]);
-
         if (typeof value == 'string') {
           return expr.escape ? escapeHTML(value) : value;
         }
@@ -237,6 +239,8 @@ const Splice = (function() {
       case 'text':
         scope[alias.value.slice(1)] = expr.value.slice(1);
         break;
+      default:
+        throw new SyntaxError('Unexpected');
     }
     return '';
   };
@@ -296,13 +300,13 @@ const Splice = (function() {
   // PUBLIC INTERFACE
   // ================
   return {
-    // Splice.render :: Object, String="#template"
-    render(scope, selector="#template") {
-      const templateElement = document.querySelector(selector);
+    // Splice.render :: Object, String="#template", String="#splice-destination"
+    render(scope, template_selector, destination_selector) {
+      const templateElement = document.querySelector(template_selector);
       const template = templateElement.innerHTML;
       const ast = parse(template);
       const html = evaluateAll(ast, scope);
-      replaceNodeWithHTML(templateElement, html);
+      document.querySelector(destination_selector).innerHTML = html;
     },
 
     // Splice.compile :: String -> [Object] -> String
@@ -325,3 +329,4 @@ const Splice = (function() {
 
   };
 }());
+
