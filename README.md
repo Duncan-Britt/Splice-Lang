@@ -1,5 +1,3 @@
-# Splice is a templating language
-
 #### Splice supports nesting, partial templates, iterators, conditionals, variable assignment, local scope, comments, escape characters, and escapes HTML by default. In its minified form, it is only 3.06 KB, uncompressed, and has no dependencies.
 
 ### To learn more see the [documentation website.](https://duncan-britt.github.io/splice-docs/#language_guide)
@@ -30,10 +28,10 @@ Make sure to also link to a file containing the Splice engine before linking to 
 </head>
 ```
 
-Call `Splice.render` and watch your template be rendered in place!
+Call `Splice.render` with CSS selectors for your template source and destination element to render your template in the DOM.
 
 ```javascript
-Splice.render(yourData, "#id-of-script-tag");
+Splice.render(yourData, "#template-src", "#destination");
 ```
 
 If your template script tag has an id of "template", you may omit the CSS selector.
