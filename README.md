@@ -1,6 +1,6 @@
-#### Splice supports nesting, partial templates, iterators, conditionals, variable assignment, local scope, comments, escape characters, and escapes HTML by default. In its minified form, it is only 3.06 KB, uncompressed, and has no dependencies.
+**I made Splice-Lang to learn how to build a templating language**, then used it to build its [documentation website](https://duncan-britt.github.io/splice-docs/#language_guide), which features an [interactive playground](https://duncan-britt.github.io/splice-docs/#playground) where you can try it yourself. *I wouldn't recommend using it for anything serious* because there are more mature, battle-tested alternatives.
 
-### To learn more see the [documentation website.](https://duncan-britt.github.io/splice-docs/#language_guide)
+Splice supports recursion, nesting, partial templates, iterators, conditionals, variable assignment, local scope, comments, escape characters, and escapes HTML by default. In its minified form, it is only 3.06 KB, uncompressed, and has no dependencies.
 
 ## HTML Templating
 
