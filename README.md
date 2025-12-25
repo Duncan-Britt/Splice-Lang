@@ -161,10 +161,6 @@ In addition, any character anywhere in a Splice template may be explicitly escap
 <p>A Splice expression begins with \(: and ends with \:).</p>
 ```
 
-### Browser Compatibility
-
-Splice does not support Internet Explorer.
-
 
 ### Documentation
 The full documentation for Splice is published at https://duncan-britt.github.io/splice-docs/
